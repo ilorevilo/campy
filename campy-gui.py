@@ -28,12 +28,14 @@ class MainApp(QWidget):
         
         self.savepath = os.getcwd()
         self.get_snapindex()
-        self.label_folder.setText(self.savepath)
+        self.set_folderlabel(self.savepath)
         self.on_caminfos()
 
     def setup_ui(self):
         """Initialize widgets.
         """
+        
+        self.setWindowTitle("Campy")
         
         ########## groupbox for folder selection
         
@@ -89,7 +91,6 @@ class MainApp(QWidget):
         self.layout_group_cam.addWidget(self.combo_res,1,1)
         self.layout_group_cam.addWidget(self.label_res,1,2)
         self.layout_group_cam.addWidget(self.btn_caminfos,0,2)
-        #self.layout_group_cam.addWidget(self.check_autoExposure,2,0,1,3)
         self.layout_group_cam.addWidget(QLabel("exposure:"),2,0)
         self.layout_group_cam.addWidget(self.slider_exposure,2,1,1,2)
         self.layout_group_cam.addWidget(self.btn_runcam,3,0)
@@ -121,6 +122,14 @@ class MainApp(QWidget):
         
         self.lbl_totTime = QLabel()
         
+        self.btn_stop_timelapse = QPushButton("stop")
+        self.btn_stop_timelapse.clicked.connect(self.stop_timelapse)
+        self.btn_stop_timelapse.setEnabled(False)
+        
+        self.prog_timelapse = QProgressBar()
+        self.prog_timelapse.setTextVisible(False)
+        self.label_Ntimelapse = QLabel("")
+        
         self.groupTimelapse = QGroupBox("Timelapse settings")
 
         self.timelapse_layout = QGridLayout()
@@ -132,7 +141,14 @@ class MainApp(QWidget):
         self.timelapse_layout.addWidget(self.spin_Npics,1,1)
         
         self.timelapse_layout.addWidget(self.lbl_totTime,2,0,1,2)
-        self.timelapse_layout.addWidget(self.btn_timelapse,2,2,1,2)
+        self.timelapse_layout.addWidget(self.btn_timelapse,2,2,1,1)
+
+        self.layout_timelapse_progress = QHBoxLayout()
+        self.layout_timelapse_progress.addWidget(self.prog_timelapse)#, stretch=1)
+        self.layout_timelapse_progress.addWidget(self.label_Ntimelapse)
+        
+        self.timelapse_layout.addLayout(self.layout_timelapse_progress,3,0,1,2)
+        self.timelapse_layout.addWidget(self.btn_stop_timelapse,3,2)
         
         self.groupTimelapse.setLayout(self.timelapse_layout)
         
@@ -140,14 +156,16 @@ class MainApp(QWidget):
         #self.quit_button.clicked.connect(self.close)
 
         self.main_layout = QGridLayout()
-        self.main_layout.addWidget(self.group_folder,0,0,1,2)
+        self.main_layout.addWidget(self.group_folder,0,0)
         self.main_layout.addWidget(self.group_cam,1,0)
         self.main_layout.addWidget(self.groupTimelapse,2,0)
         #self.main_layout.addWidget(self.quit_button,3,0)
 
-        self.main_layout.addWidget(self.label_view,1,1,4,1)
+        self.main_layout.addWidget(self.label_view,0,1,4,1)
         self.setLayout(self.main_layout)
 
+        self.setFixedSize(self.sizeHint()) # lock size of window
+        
     def on_runcam(self):
 
         # disable buttons
@@ -183,6 +201,7 @@ class MainApp(QWidget):
            widget.setEnabled(True)
         self.btn_snapsingle.setEnabled(False)
         self.btn_closecam.setEnabled(False)
+        self.btn_timelapse.setEnabled(False)
         
     def on_caminfos(self):
     
@@ -237,8 +256,15 @@ class MainApp(QWidget):
         folder = QFileDialog.getExistingDirectory(None, "choose output folder", self.savepath, QFileDialog.ShowDirsOnly)
         if folder != '':
             self.savepath = folder
-            self.label_folder.setText(folder)
+            self.set_folderlabel(folder)
             self.get_snapindex()
+
+    def set_folderlabel(self, folder):
+        if len(folder) > 45:
+            displayfolder = folder[0:12] + "..." + folder[-30:]
+            self.label_folder.setText(displayfolder)   
+        else:
+            self.label_folder.setText(folder)
 
     def on_change_exposure(self):
         if self.camera.is_active():
@@ -262,7 +288,8 @@ class MainApp(QWidget):
     def get_snapindex(self):
         """ looks through files in outputfolder to get highest index """
         files = glob.glob(self.savepath + '\\*.tif')
-        indices = [int(file.split("snap_")[1].split(".tif")[0]) for file in files]
+        snaps = [file for file in files if "snap_" in file] #remove all files which are not called snap_####
+        indices = [int(file.split("snap_")[1].split(".tif")[0]) for file in snaps]
         
         if len(indices) == 0:
             self.snapindex = 0
@@ -270,9 +297,70 @@ class MainApp(QWidget):
             self.snapindex = max(indices) + 1
 
     def on_timelapse(self):
+        # lock selected input, can be definitely improved...
         self.btn_folder.setEnabled(False)
-        # create folder: TL-YYYY-MM-DD-HH-MM-ss
-        # start timer/ thread & connect with progress bar
+        self.btn_stop_timelapse.setEnabled(True)
+        self.slider_exposure.setEnabled(False)
+        self.btn_timelapse.setEnabled(False)
+        self.spin_Npics.setEnabled(False)
+        self.spin_time.setEnabled(False)
+        self.combo_time_unit.setEnabled(False)
+        self.btn_snapsingle.setEnabled(False)
+        self.btn_closecam.setEnabled(False)
+        
+        starttime = datetime.datetime.now()
+        foldername = "TL_" + starttime.strftime("%Y-%m-%d_%H-%M-%S") # include also timestep?
+        self.path_timelapse = self.savepath+"\\"+foldername
+        
+        os.mkdir(self.path_timelapse)
+        
+        self.start_timelapse()
+
+    def start_timelapse(self):
+        """ sets timelapse values and starts timer for periodic image capture """
+    
+        self.i_timelapse = 0        
+        self.N_timelapse = self.spin_Npics.value() # don't forget to lock gui elements...
+        self.N_timelapse_digits = len(str(self.N_timelapse))
+        self.prog_timelapse.setRange(0,self.N_timelapse)
+        
+        deltat = self.spin_time.value()       
+        if self.combo_time_unit.currentText() == 'min':
+            delta_millis = deltat * 60000
+        else:
+            delta_millis = deltat * 1000
+        
+        self.timer_timelapse = QTimer() # keep in mind: old timer is still running
+        self.timer_timelapse.timeout.connect(self.update_timelapse)
+        self.timer_timelapse.start(delta_millis)
+        self.update_timelapse() # execute once directly after start, 
+                                # otherwise first picture will be only taken after waiting for first period
+
+    def stop_timelapse(self):
+        self.timer_timelapse.stop()
+        
+        # unlock gui elements
+        self.slider_exposure.setEnabled(True)
+        self.btn_folder.setEnabled(True)
+        self.btn_stop_timelapse.setEnabled(False)
+        self.slider_exposure.setEnabled(True)
+        self.btn_timelapse.setEnabled(True)
+        self.spin_Npics.setEnabled(True)
+        self.spin_time.setEnabled(True)
+        self.combo_time_unit.setEnabled(True)
+        self.btn_snapsingle.setEnabled(True)
+        self.btn_closecam.setEnabled(True)
+        
+    def update_timelapse(self):
+        """ callback for timer during timelapse to take new image """        
+        
+        self.prog_timelapse.setValue(self.i_timelapse+1)
+        self.label_Ntimelapse.setText(str(self.i_timelapse+1).zfill(self.N_timelapse_digits)+"/"+str(self.N_timelapse))
+        frame = self.camera.get_frame()   
+        tifffile.imwrite(self.path_timelapse + '\\' + "{:06d}".format(self.i_timelapse) + '.tif', frame, photometric='rgb')  
+        self.i_timelapse = self.i_timelapse + 1
+        if self.i_timelapse >= self.N_timelapse:
+            self.stop_timelapse()
 
     def update_totTime(self):
         

@@ -15,10 +15,11 @@ def get_cams():
     while True:
         cap = cv2.VideoCapture(index)
         if not cap.read()[0]:
+            cap.release()
             break
         else:
             camindices.append(index)
-        cap.release()
+            cap.release()
         index += 1
     
     print("found valid camera indices:", camindices)
@@ -68,6 +69,7 @@ class camcontrol():
     def get_frame(self):
         ret, frame = self.cap.read()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
         return frame
         
     def close(self):
