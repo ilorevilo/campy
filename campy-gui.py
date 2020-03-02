@@ -32,8 +32,7 @@ class MainApp(QWidget):
         self.on_caminfos()
 
     def setup_ui(self):
-        """Initialize widgets.
-        """
+        """ Initialize widgets """
         
         self.setWindowTitle("Campy")
         
@@ -48,7 +47,6 @@ class MainApp(QWidget):
         self.layout_group_cam.addWidget(self.btn_folder)#,stretch=1)
         self.layout_group_cam.addWidget(self.label_folder,stretch=1)#,stretch=4)
         self.group_folder.setLayout(self.layout_group_cam)
-        
         
         ######### groupbox for camsettings
         
@@ -98,7 +96,7 @@ class MainApp(QWidget):
         self.layout_group_cam.addWidget(self.btn_snapsingle,3,2)
         self.group_cam.setLayout(self.layout_group_cam)
         
-        ######### used for display images 
+        ######### used for displaying live image
    
         self.label_view = QLabel()
         self.label_view.setFrameShape(QFrame.Box)
@@ -151,15 +149,11 @@ class MainApp(QWidget):
         self.timelapse_layout.addWidget(self.btn_stop_timelapse,3,2)
         
         self.groupTimelapse.setLayout(self.timelapse_layout)
-        
-        #self.quit_button = QPushButton("Quit")
-        #self.quit_button.clicked.connect(self.close)
 
         self.main_layout = QGridLayout()
         self.main_layout.addWidget(self.group_folder,0,0)
         self.main_layout.addWidget(self.group_cam,1,0)
         self.main_layout.addWidget(self.groupTimelapse,2,0)
-        #self.main_layout.addWidget(self.quit_button,3,0)
 
         self.main_layout.addWidget(self.label_view,0,1,4,1)
         self.setLayout(self.main_layout)
@@ -169,7 +163,7 @@ class MainApp(QWidget):
     def on_runcam(self):
 
         # disable buttons
-        #camwidgets=self.group_cam.findChildren(QWidget) iterate over widgets or specify:
+        # camwidgets=self.group_cam.findChildren(QWidget) iterate over widgets or rather specify individually:
         self.slider_exposure.setEnabled(True)
         self.combo_cams.setEnabled(False)
         self.btn_runcam.setEnabled(False)
@@ -210,17 +204,6 @@ class MainApp(QWidget):
         self.combo_cams.clear()
         for idx in camindices:
             self.combo_cams.addItem(str(idx))
-
-    """
-    def update_camsetting(self):
-        if self.camera.is_active():
-            self.timer.stop()
-            
-            autoExp = not self.check_autoExposure.isChecked() # inverse as check means disable
-            self.camera.set_auto_exposure(auto = autoExp)
-            
-            self.timer.start(30)
-    """
         
     def start_live(self):
         """
@@ -392,13 +375,12 @@ class MainApp(QWidget):
         self.timer.stop()
         
     def keyPressEvent(self, e):
-        #if escape is pressed, App is supposed to close
+        # close window when Escape pressed
         if e.key() == Core.Qt.Key_Escape:
             self.close()
             
 if __name__ == '__main__':
-        
-    #start the application
+
     app = QApplication(sys.argv)
     app.aboutToQuit.connect(app.deleteLater)
     gui = MainApp()

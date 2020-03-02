@@ -1,0 +1,49 @@
+name: campy
+channels:
+  - anaconda
+  - conda-forge
+  - defaults
+dependencies:
+  - blas=1.0
+  - icc_rt=2019.0.0
+  - icu=58.2
+  - libopencv=3.4.2
+  - mkl_fft=1.0.6
+  - mkl_random=1.0.1
+  - numpy=1.15.4
+  - numpy-base=1.15.4
+  - py-opencv=3.4.2
+  - pyqt=5.9.2
+  - python=3.7.4
+  - sip=4.19.8
+  - sqlite=3.29.0
+  - vc=14.1
+  - vs2015_runtime=15.5.2
+  - ca-certificates=2019.11.28
+  - certifi=2019.11.28
+  - freetype=2.10.0
+  - imagecodecs-lite=2019.12.3
+  - jpeg=9c
+  - libblas=3.8.0
+  - libcblas=3.8.0
+  - libclang=9.0.1
+  - liblapack=3.8.0
+  - liblapacke=3.8.0
+  - libpng=1.6.37
+  - libtiff=4.1.0
+  - libwebp=1.0.2
+  - lz4-c=1.8.3
+  - openssl=1.1.1d
+  - tifffile=2020.2.16
+  - xz=5.2.4
+  - zlib=1.2.11
+  - zstd=1.4.4
+  - intel-openmp=2020.0
+  - mkl=2020.0
+  - pip=20.0.2
+  - qt=5.9.7
+  - setuptools=45.2.0
+  - wheel=0.34.2
+  - wincertstore=0.2
+prefix: C:\Anaconda3\envs\campy
+

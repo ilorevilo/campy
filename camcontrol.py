@@ -29,7 +29,7 @@ class camcontrol():
     """ controls camera """
     
     def __init__(self):
-        #print ("cv2 build: ", cv2.getBuildInformation())
+        #print ("cv2 build: ", cv2.getBuildInformation()) # not implemented in used OpenCV version?
 
         self.cap = None
         self.idx = None
