@@ -74,6 +74,8 @@ class camcontrol():
         
     def close(self):
         if self.active == True:
+            self.set_auto_exposure(True)    # enable auto exposure again, needed 
+                                            # for e.g. integrated webcam to work properly
             self.cap.release()
             self.cap = None
             self.active = False
